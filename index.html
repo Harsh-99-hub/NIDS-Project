@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NIDS — Network Intrusion Detection System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── RESET & BASE ───────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    --bg0: #060a0f;
+    --bg1: #0b1018;
+    --bg2: #101820;
+    --bg3: #172030;
+    --border: rgba(0,210,255,0.12);
+    --border-bright: rgba(0,210,255,0.35);
+    --cyan: #00d2ff;
+    --cyan-dim: rgba(0,210,255,0.18);
+    --green: #00ff9d;
+    --green-dim: rgba(0,255,157,0.15);
+    --red: #ff3b5c;
+    --red-dim: rgba(255,59,92,0.18);
+    --orange: #ff8c42;
+    --orange-dim: rgba(255,140,66,0.18);
+    --yellow: #ffe566;
+    --yellow-dim: rgba(255,229,102,0.15);
+    --purple: #a78bfa;
+    --purple-dim: rgba(167,139,250,0.15);
+    --text0: #e8f4ff;
+    --text1: #8aafc8;
+    --text2: #4a6680;
+    --font-head: 'Orbitron', monospace;
+    --font-mono: 'JetBrains Mono', monospace;
+    --sidebar-w: 240px;
+}
+
+html, body { height: 100%; overflow: hidden; }
+
+body {
+    background: var(--bg0);
+    color: var(--text0);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    display: flex;
+}
+
+/* Scanline overlay */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.03) 2px,
+        rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+}
+
+/* ── SCROLLBAR ──────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--bg1); }
+::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 2px; }
+
+/* ── SIDEBAR ────────────────────────────────────────────────────── */
+#sidebar {
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+    height: 100vh;
+    background: var(--bg1);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+}
+
+#sidebar::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 1px; height: 100%;
+    background: linear-gradient(to bottom, transparent, var(--cyan), transparent);
+    opacity: 0.4;
+}
+
+.brand {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--border);
+}
+.brand-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--cyan), var(--green));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    margin-bottom: 10px;
+    box-shadow: 0 0 20px rgba(0,210,255,0.4);
+}
+.brand-name {
+    font-family: var(--font-head);
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: var(--cyan);
+    line-height: 1;
+}
+.brand-sub {
+    font-size: 9px;
+    color: var(--text2);
+    letter-spacing: 2px;
+    margin-top: 4px;
+    text-transform: uppercase;
+}
+
+.live-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    font-size: 9px;
+    color: var(--green);
+    letter-spacing: 1px;
+}
+.live-dot::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.5; transform: scale(0.8); }
+}
+
+nav { padding: 12px 0; flex: 1; overflow-y: auto; }
+
+.nav-section {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text2);
+    padding: 14px 20px 6px;
+    text-transform: uppercase;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    cursor: pointer;
+    color: var(--text1);
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+    position: relative;
+    user-select: none;
+}
+.nav-item:hover { color: var(--text0); background: var(--cyan-dim); }
+.nav-item.active {
+    color: var(--cyan);
+    background: var(--cyan-dim);
+}
+.nav-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 2px;
+    background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan);
+}
+.nav-item .icon { font-size: 15px; width: 18px; text-align: center; }
+
+.nav-badge {
+    margin-left: auto;
+    background: var(--red-dim);
+    color: var(--red);
+    border: 1px solid rgba(255,59,92,0.3);
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-size: 10px;
+}
+
+/* ── MAIN AREA ──────────────────────────────────────────────────── */
+#main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Top Bar */
+#topbar {
+    height: 56px;
+    min-height: 56px;
+    background: var(--bg1);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 16px;
+}
+.topbar-title {
+    font-family: var(--font-head);
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--cyan);
+    flex: 1;
+}
+.topbar-time {
+    font-size: 11px;
+    color: var(--text2);
+    letter-spacing: 1px;
+}
+.refresh-btn {
+    background: transparent;
+    border: 1px solid var(--border-bright);
+    color: var(--cyan);
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+}
+.refresh-btn:hover { background: var(--cyan-dim); }
+
+/* Content */
+#content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+}
+
+/* ── PAGES ──────────────────────────────────────────────────────── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── STAT CARDS ─────────────────────────────────────────────────── */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
+}
+.stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+}
+.stat-card:hover { border-color: var(--border-bright); }
+.stat-card::after {
+    content: '';
+    position: absolute;
+    top: -30px; right: -30px;
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    opacity: 0.06;
+}
+.stat-card.cyan::after  { background: var(--cyan);   }
+.stat-card.red::after   { background: var(--red);    }
+.stat-card.green::after { background: var(--green);  }
+.stat-card.orange::after{ background: var(--orange); }
+.stat-card.purple::after{ background: var(--purple); }
+.stat-card.yellow::after{ background: var(--yellow); }
+
+.stat-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text2);
+    margin-bottom: 10px;
+}
+.stat-value {
+    font-family: var(--font-head);
+    font-size: 28px;
+    line-height: 1;
+}
+.stat-card.cyan   .stat-value { color: var(--cyan);   }
+.stat-card.red    .stat-value { color: var(--red);    }
+.stat-card.green  .stat-value { color: var(--green);  }
+.stat-card.orange .stat-value { color: var(--orange); }
+.stat-card.purple .stat-value { color: var(--purple); }
+.stat-card.yellow .stat-value { color: var(--yellow); }
+
+.stat-icon {
+    position: absolute;
+    right: 16px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 28px;
+    opacity: 0.2;
+}
+
+/* ── SECTION HEADER ─────────────────────────────────────────────── */
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+.section-title {
+    font-family: var(--font-head);
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--cyan);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.section-title::before {
+    content: '';
+    display: inline-block;
+    width: 3px; height: 14px;
+    background: var(--cyan);
+    border-radius: 2px;
+    box-shadow: 0 0 8px var(--cyan);
+}
+
+/* ── CARDS & PANELS ─────────────────────────────────────────────── */
+.panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+/* ── TABLE ──────────────────────────────────────────────────────── */
+.table-wrap { overflow-x: auto; }
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+thead th {
+    background: var(--bg3);
+    color: var(--text2);
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 10px 14px;
+    text-align: left;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border);
+}
+tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+}
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: rgba(0,210,255,0.04); }
+tbody td {
+    padding: 10px 14px;
+    color: var(--text0);
+    font-size: 12px;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+.mono { font-family: var(--font-mono); color: var(--text1); }
+
+/* ── SEVERITY BADGES ────────────────────────────────────────────── */
+.badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 600;
+    border: 1px solid;
+}
+.badge-critical { color: var(--red);    background: var(--red-dim);    border-color: rgba(255,59,92,0.3);   }
+.badge-high     { color: var(--orange); background: var(--orange-dim); border-color: rgba(255,140,66,0.3);  }
+.badge-medium   { color: var(--yellow); background: var(--yellow-dim); border-color: rgba(255,229,102,0.3); }
+.badge-low      { color: var(--green);  background: var(--green-dim);  border-color: rgba(0,255,157,0.3);   }
+.badge-executed { color: var(--green);  background: var(--green-dim);  border-color: rgba(0,255,157,0.3);   }
+.badge-pending  { color: var(--yellow); background: var(--yellow-dim); border-color: rgba(255,229,102,0.3); }
+
+/* ── FORMS ──────────────────────────────────────────────────────── */
+.form-panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 14px;
+}
+.form-group label {
+    display: block;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text2);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
+.form-group input,
+.form-group select {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text0);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 8px 10px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+.form-group input:focus,
+.form-group select:focus { border-color: var(--cyan); }
+.form-group select option { background: var(--bg2); }
+
+.btn {
+    padding: 8px 20px;
+    border-radius: 4px;
+    border: 1px solid;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+}
+.btn-primary {
+    background: var(--cyan-dim);
+    border-color: var(--cyan);
+    color: var(--cyan);
+}
+.btn-primary:hover { background: rgba(0,210,255,0.3); }
+.btn-danger {
+    background: var(--red-dim);
+    border-color: rgba(255,59,92,0.4);
+    color: var(--red);
+    padding: 4px 10px;
+    font-size: 10px;
+}
+.btn-danger:hover { background: rgba(255,59,92,0.3); }
+.btn-success {
+    background: var(--green-dim);
+    border-color: rgba(0,255,157,0.4);
+    color: var(--green);
+    padding: 4px 10px;
+    font-size: 10px;
+}
+.btn-success:hover { background: rgba(0,255,157,0.3); }
+
+/* ── TOAST ──────────────────────────────────────────────────────── */
+#toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--bg3);
+    border: 1px solid var(--border-bright);
+    border-radius: 6px;
+    padding: 12px 20px;
+    color: var(--cyan);
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s;
+    z-index: 10000;
+    pointer-events: none;
+    max-width: 300px;
+}
+#toast.show { opacity: 1; transform: translateY(0); }
+#toast.error { color: var(--red); border-color: rgba(255,59,92,0.5); }
+
+/* ── LOADING ────────────────────────────────────────────────────── */
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--text2);
+    font-size: 11px;
+    letter-spacing: 2px;
+}
+.loading::after {
+    content: '...';
+    animation: dots 1.5s infinite;
+}
+@keyframes dots {
+    0%   { content: '.'; }
+    33%  { content: '..'; }
+    66%  { content: '...'; }
+}
+
+/* ── EMPTY STATE ────────────────────────────────────────────────── */
+.empty { text-align: center; padding: 40px; color: var(--text2); font-size: 11px; }
+
+/* ── ALERT ROW GLOW for Critical ─────────────────────────────────── */
+tr.critical-row td:first-child { border-left: 2px solid var(--red); }
+tr.critical-row { background: rgba(255,59,92,0.03); }
+
+/* ── GRID 2-COL ─────────────────────────────────────────────────── */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━ SIDEBAR ━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<div id="sidebar">
+    <div class="brand">
+        <div class="brand-icon">🛡️</div>
+        <div class="brand-name">NIDS</div>
+        <div class="brand-sub">Network Intrusion Detection</div>
+        <div class="live-dot">SYSTEM ACTIVE</div>
+    </div>
+
+    <nav>
+        <div class="nav-section">Overview</div>
+        <div class="nav-item active" onclick="showPage('dashboard')">
+            <span class="icon">📊</span> Dashboard
+        </div>
+
+        <div class="nav-section">Threats</div>
+        <div class="nav-item" onclick="showPage('alerts')">
+            <span class="icon">🚨</span> Alerts
+            <span class="nav-badge" id="alert-badge">—</span>
+        </div>
+        <div class="nav-item" onclick="showPage('events')">
+            <span class="icon">⚡</span> Intrusion Events
+        </div>
+        <div class="nav-item" onclick="showPage('signatures')">
+            <span class="icon">🔍</span> Attack Signatures
+        </div>
+
+        <div class="nav-section">Network</div>
+        <div class="nav-item" onclick="showPage('traffic')">
+            <span class="icon">📡</span> Traffic Logs
+        </div>
+        <div class="nav-item" onclick="showPage('devices')">
+            <span class="icon">🖥️</span> Devices
+        </div>
+
+        <div class="nav-section">Management</div>
+        <div class="nav-item" onclick="showPage('actions')">
+            <span class="icon">⚙️</span> Response Actions
+        </div>
+        <div class="nav-item" onclick="showPage('admins')">
+            <span class="icon">👤</span> Admins
+        </div>
+    </nav>
+</div>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━ MAIN ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<div id="main">
+    <div id="topbar">
+        <div class="topbar-title" id="page-title">DASHBOARD OVERVIEW</div>
+        <div class="topbar-time" id="clock">—</div>
+        <button class="refresh-btn" onclick="refreshCurrentPage()">↻ REFRESH</button>
+    </div>
+
+    <div id="content">
+
+        <!-- ═══════════════ DASHBOARD PAGE ═══════════════ -->
+        <div class="page active" id="page-dashboard">
+            <div class="stats-grid">
+                <div class="stat-card cyan">
+                    <div class="stat-label">Total Alerts</div>
+                    <div class="stat-value" id="s-total">—</div>
+                    <div class="stat-icon">🚨</div>
+                </div>
+                <div class="stat-card red">
+                    <div class="stat-label">Critical / High</div>
+                    <div class="stat-value" id="s-critical">—</div>
+                    <div class="stat-icon">🔴</div>
+                </div>
+                <div class="stat-card green">
+                    <div class="stat-label">Devices Online</div>
+                    <div class="stat-value" id="s-devices">—</div>
+                    <div class="stat-icon">🖥️</div>
+                </div>
+                <div class="stat-card orange">
+                    <div class="stat-label">Traffic Logs</div>
+                    <div class="stat-value" id="s-traffic">—</div>
+                    <div class="stat-icon">📡</div>
+                </div>
+                <div class="stat-card purple">
+                    <div class="stat-label">Actions Taken</div>
+                    <div class="stat-value" id="s-actions">—</div>
+                    <div class="stat-icon">⚙️</div>
+                </div>
+                <div class="stat-card yellow">
+                    <div class="stat-label">Intrusion Events</div>
+                    <div class="stat-value" id="s-events">—</div>
+                    <div class="stat-icon">⚡</div>
+                </div>
+            </div>
+
+            <div class="grid2">
+                <div>
+                    <div class="section-header">
+                        <div class="section-title">RECENT ALERTS</div>
+                    </div>
+                    <div class="panel">
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Message</th>
+                                        <th>Severity</th>
+                                        <th>Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dash-alerts-body">
+                                    <tr><td colspan="3" class="loading">Loading</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div class="section-header">
+                        <div class="section-title">RECENT ACTIONS</div>
+                    </div>
+                    <div class="panel">
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Action</th>
+                                        <th>Status</th>
+                                        <th>Admin</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dash-actions-body">
+                                    <tr><td colspan="3" class="loading">Loading</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-header">
+                <div class="section-title">RECENT TRAFFIC</div>
+            </div>
+            <div class="panel">
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Log ID</th>
+                                <th>Source IP</th>
+                                <th>Dest IP</th>
+                                <th>Protocol</th>
+                                <th>Port</th>
+                                <th>Packet Size</th>
+                                <th>Timestamp</th>
+                                <th>Device</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dash-traffic-body">
+                            <tr><td colspan="8" class="loading">Loading</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════ ALERTS PAGE ═══════════════════ -->
+        <div class="page" id="page-alerts">
+            <div class="form-panel">
+                <div class="section-header">
+                    <div class="section-title">ADD NEW ALERT</div>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Alert ID</label>
+                        <input id="a-id" type="number" placeholder="e.g. 410">
+                    </div>
+                    <div class="form-group">
+                        <label>Message</label>
+                        <input id="a-msg" placeholder="Alert description">
+                    </div>
+                    <div class="form-group">
+                        <label>Severity</label>
+                        <select id="a-sev">
+                            <option>Critical</option>
+                            <option>High</option>
+                            <option selected>Medium</option>
+                            <option>Low</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Alert Type</label>
+                        <input id="a-type" placeholder="e.g. Security Alert" value="Security Alert">
+                    </div>
+                    <div class="form-group">
+                        <label>Event ID (optional)</label>
+                        <input id="a-event" type="number" placeholder="e.g. 301">
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="addAlert()">+ ADD ALERT</button>
+            </div>
+
+            <div class="section-header">
+                <div class="section-title">ALL ALERTS</div>
+            </div>
+            <div class="panel">
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Message</th>
+                                <th>Severity</th>
+                                <th>Type</th>
+                                <th>Event</th>
+                                <th>Threat Level</th>
+                                <th>Time</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="alerts-body">
+                            <tr><td colspan="8" class="loading">Loading</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════ INTRUSION EVENTS ══════════════ -->
+        <div class="page" id="page-events">
+            <div class="section-header">
+                <div class="section-title">INTRUSION EVENTS</div>
+            </div>
+            <div class="panel">
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Event ID</th>
+                                <th>Description</th>
+                                <th>Threat Level</th>
+                                <th>Event Time</th>
+                                <th>Attack Name</th>
+                                <th>Risk Level</th>
+                                <th>Sig. Description</th>
+                            </tr>
+                        </thead>
+                        <tbody id="events-body">
+                            <tr><td colspan="7" class="loading">Loading</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════ SIGNATURES ════════════════════ -->
+        <div class="page" id="page-signatures">
+            <div class="section-header">
+                <div class="section-title">ATTACK SIGNATURES</div>
+            </div>
+            <div class="panel">
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Sig ID</th>
+                                <th>Attack Name</th>
+                                <th>Risk Level</th>
+                                <th>Rule Pattern</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody id="signatures-body">
+                            <tr><td colspan="5" class="loading">Loading</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════ TRAFFIC PAGE ══════════════════ -->
+        <div class="page" id="page-traffic">
+            <div class="section-header">
+                <div class="section-title">TRAFFIC LOGS</div>
+            </div>
+            <div class="panel">
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Log ID</th>
+                                <th>Source IP</th>
+                                <th>Dest IP</th>
+                                <th>Protocol</th>
+                                <th>Port</th>
+                                <th>Packet Size</th>
+                                <th>Session (s)</th>
+                                <th>Interface</th>
+                                <th>Device</th>
+                                <th>Location</th>
+                                <th>Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody id="traffic-body">
+                            <tr><td colspan="11" class="loading">Loading</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════ DEVICES PAGE ══════════════════ -->
+        <div class="page" id="page-devices">
+            <div class="form-panel">
+                <div class="section-header">
+                    <div class="section-title">ADD DEVICE</div>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Device ID</label>
+                        <input id="d-id" type="number" placeholder="e.g. 5">
+                    </div>
+                    <div class="form-group">
+                        <label>Device Name</label>
+                        <input id="d-name" placeholder="e.g. Switch-02">
+                    </div>
+                    <div class="form-group">
+                        <label>IP Address</label>
+                        <input id="d-ip" placeholder="e.g. 192.168.1.20">
+                    </div>
+                    <div class="form-group">
+                        <label>Location</label>
+                        <input id="d-loc" placeholder="e.g. Server Room">
+                    </div>
+                    <div class="form-group">
+                        <label>Device Type</label>
+                        <select id="d-type">
+                            <option>Server</option>
+                            <option>Router</option>
+                            <option>Switch</option>
+                            <option>Firewall</option>
+                            <option>Workstation</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="addDevice()">+ ADD DEVICE</button>
+            </div>
+
+            <div class="section-header">
+                <div class="section-title">ALL DEVICES</div>
+            </div>
+            <div class="panel">
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>IP Address</th>
+                                <th>Location</th>
+                                <th>Type</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="devices-body">
+                            <tr><td colspan="6" class="loading">Loading</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════ RESPONSE ACTIONS ══════════════ -->
+        <div class="page" id="page-actions">
+            <div class="form-panel">
+                <div class="section-header">
+                    <div class="section-title">ADD RESPONSE ACTION</div>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Action ID</label>
+                        <input id="ac-id" type="number" placeholder="e.g. 10">
+                    </div>
+                    <div class="form-group">
+                        <label>Action Type</label>
+                        <select id="ac-type">
+                            <option>Block IP</option>
+                            <option>Monitor Traffic</option>
+                            <option>Reset Password</option>
+                            <option>Block Traffic</option>
+                            <option>Shutdown Server</option>
+                            <option>Notify Admin</option>
+                            <option>Isolate Device</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="ac-status">
+                            <option>Pending</option>
+                            <option>Executed</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Alert ID</label>
+                        <input id="ac-alert" type="number" placeholder="e.g. 401">
+                    </div>
+                    <div class="form-group">
+                        <label>Admin ID</label>
+                        <input id="ac-admin" type="number" placeholder="e.g. 501">
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="addAction()">+ ADD ACTION</button>
+            </div>
+
+            <div class="section-header">
+                <div class="section-title">ALL RESPONSE ACTIONS</div>
+            </div>
+            <div class="panel">
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Action Type</th>
+                                <th>Status</th>
+                                <th>Alert</th>
+                                <th>Severity</th>
+                                <th>Admin</th>
+                                <th>Role</th>
+                                <th>Time</th>
+                                <th>Update</th>
+                            </tr>
+                        </thead>
+                        <tbody id="actions-body">
+                            <tr><td colspan="9" class="loading">Loading</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════ ADMINS PAGE ═══════════════════ -->
+        <div class="page" id="page-admins">
+            <div class="section-header">
+                <div class="section-title">ADMIN USERS</div>
+            </div>
+            <div class="panel">
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Admin ID</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Phone(s)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admins-body">
+                            <tr><td colspan="5" class="loading">Loading</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━ SCRIPT ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<script>
+const API = 'http://localhost:3000/api';
+
+// ── UTILS ────────────────────────────────────────────────────────
+function fmt(dt) {
+    if (!dt) return '—';
+    return new Date(dt).toLocaleString('en-IN', { hour12: false });
+}
+
+function sevBadge(s) {
+    if (!s) return '<span class="badge badge-low">—</span>';
+    const cls = {
+        'Critical': 'badge-critical',
+        'High':     'badge-high',
+        'Medium':   'badge-medium',
+        'Low':      'badge-low'
+    }[s] || 'badge-low';
+    return `<span class="badge ${cls}">${s}</span>`;
+}
+
+function statusBadge(s) {
+    return s === 'Executed'
+        ? `<span class="badge badge-executed">${s}</span>`
+        : `<span class="badge badge-pending">${s || 'Pending'}</span>`;
+}
+
+async function api(endpoint, opts = {}) {
+    try {
+        const r = await fetch(API + endpoint, opts);
+        return await r.json();
+    } catch (e) {
+        return { error: e.message };
+    }
+}
+
+function toast(msg, isError = false) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = isError ? 'error show' : 'show';
+    setTimeout(() => { t.className = ''; }, 3000);
+}
+
+// ── CLOCK ────────────────────────────────────────────────────────
+function updateClock() {
+    document.getElementById('clock').textContent =
+        new Date().toLocaleString('en-IN', { hour12: false });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── NAV ──────────────────────────────────────────────────────────
+let currentPage = 'dashboard';
+const pageTitles = {
+    dashboard:  'DASHBOARD OVERVIEW',
+    alerts:     'ALERTS MANAGEMENT',
+    events:     'INTRUSION EVENTS',
+    signatures: 'ATTACK SIGNATURES',
+    traffic:    'TRAFFIC LOGS',
+    devices:    'DEVICE MANAGEMENT',
+    actions:    'RESPONSE ACTIONS',
+    admins:     'ADMIN USERS'
+};
+
+function showPage(name) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('page-' + name).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n => {
+        if (n.getAttribute('onclick').includes(name)) n.classList.add('active');
+    });
+    document.getElementById('page-title').textContent = pageTitles[name];
+    currentPage = name;
+    loadPage(name);
+}
+
+function refreshCurrentPage() { loadPage(currentPage); }
+
+function loadPage(name) {
+    ({
+        dashboard:  loadDashboard,
+        alerts:     loadAlerts,
+        events:     loadEvents,
+        signatures: loadSignatures,
+        traffic:    loadTraffic,
+        devices:    loadDevices,
+        actions:    loadActions,
+        admins:     loadAdmins
+    })[name]?.();
+}
+
+// ── DASHBOARD ────────────────────────────────────────────────────
+async function loadDashboard() {
+    const [stats, alerts, actions, traffic] = await Promise.all([
+        api('/stats'),
+        api('/alerts'),
+        api('/actions'),
+        api('/traffic')
+    ]);
+
+    if (!stats.error) {
+        document.getElementById('s-total').textContent    = stats.totalAlerts;
+        document.getElementById('s-critical').textContent = stats.criticalAlerts;
+        document.getElementById('s-devices').textContent  = stats.totalDevices;
+        document.getElementById('s-traffic').textContent  = stats.totalTraffic;
+        document.getElementById('s-actions').textContent  = stats.executedActions;
+        document.getElementById('s-events').textContent   = stats.totalEvents;
+
+        // badge
+        document.getElementById('alert-badge').textContent = stats.totalAlerts;
+    }
+
+    // Recent alerts (5)
+    const ab = document.getElementById('dash-alerts-body');
+    if (!alerts.error && alerts.length) {
+        ab.innerHTML = alerts.slice(0, 5).map(a => `
+            <tr class="${a.severity === 'Critical' ? 'critical-row' : ''}">
+                <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis">${a.alert_message}</td>
+                <td>${sevBadge(a.severity)}</td>
+                <td class="mono">${fmt(a.alert_time)}</td>
+            </tr>`).join('');
+    } else {
+        ab.innerHTML = '<tr><td colspan="3" class="empty">No alerts</td></tr>';
+    }
+
+    // Recent actions (5)
+    const acb = document.getElementById('dash-actions-body');
+    if (!actions.error && actions.length) {
+        acb.innerHTML = actions.slice(0, 5).map(a => `
+            <tr>
+                <td>${a.action_type}</td>
+                <td>${statusBadge(a.action_status)}</td>
+                <td>${a.admin_name || '—'}</td>
+            </tr>`).join('');
+    } else {
+        acb.innerHTML = '<tr><td colspan="3" class="empty">No actions</td></tr>';
+    }
+
+    // Recent traffic (8)
+    const tb = document.getElementById('dash-traffic-body');
+    if (!traffic.error && traffic.length) {
+        tb.innerHTML = traffic.slice(0, 8).map(t => `
+            <tr>
+                <td class="mono">${t.log_id}</td>
+                <td class="mono" style="color:var(--cyan)">${t.src_ip}</td>
+                <td class="mono">${t.dest_ip}</td>
+                <td><span class="badge" style="color:var(--purple);background:var(--purple-dim);border-color:rgba(167,139,250,0.3)">${t.protocol}</span></td>
+                <td class="mono">${t.port}</td>
+                <td>${t.packet_size} B</td>
+                <td class="mono">${fmt(t.timestamp)}</td>
+                <td>${t.device_name || '—'}</td>
+            </tr>`).join('');
+    } else {
+        tb.innerHTML = '<tr><td colspan="8" class="empty">No traffic logs</td></tr>';
+    }
+}
+
+// ── ALERTS ───────────────────────────────────────────────────────
+async function loadAlerts() {
+    const data = await api('/alerts');
+    const b = document.getElementById('alerts-body');
+    if (data.error) { b.innerHTML = `<tr><td colspan="8" class="empty">Error: ${data.error}</td></tr>`; return; }
+    if (!data.length) { b.innerHTML = '<tr><td colspan="8" class="empty">No alerts found</td></tr>'; return; }
+    b.innerHTML = data.map(a => `
+        <tr class="${a.severity === 'Critical' ? 'critical-row' : ''}">
+            <td class="mono">${a.alert_id}</td>
+            <td style="max-width:250px">${a.alert_message}</td>
+            <td>${sevBadge(a.severity)}</td>
+            <td>${a.alert_type || '—'}</td>
+            <td class="mono">${a.event_id || '—'}</td>
+            <td>${sevBadge(a.threat_level)}</td>
+            <td class="mono">${fmt(a.alert_time)}</td>
+            <td>
+                <button class="btn btn-danger" onclick="deleteAlert(${a.alert_id})">✕ DEL</button>
+            </td>
+        </tr>`).join('');
+}
+
+async function addAlert() {
+    const body = {
+        alert_id:      document.getElementById('a-id').value,
+        alert_message: document.getElementById('a-msg').value,
+        severity:      document.getElementById('a-sev').value,
+        alert_type:    document.getElementById('a-type').value,
+        event_id:      document.getElementById('a-event').value || null
+    };
+    if (!body.alert_id || !body.alert_message) return toast('Alert ID and Message required', true);
+    const r = await api('/alerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+    if (r.error) return toast('Error: ' + r.error, true);
+    toast('✔ Alert added!');
+    ['a-id','a-msg','a-event'].forEach(id => document.getElementById(id).value = '');
+    loadAlerts();
+}
+
+async function deleteAlert(id) {
+    if (!confirm(`Delete Alert #${id}? (Response actions will also be removed)`)) return;
+    const r = await api('/alerts/' + id, { method: 'DELETE' });
+    if (r.error) return toast('Error: ' + r.error, true);
+    toast('✔ Alert deleted');
+    loadAlerts();
+    loadDashboard();
+}
+
+// ── EVENTS ───────────────────────────────────────────────────────
+async function loadEvents() {
+    const data = await api('/events');
+    const b = document.getElementById('events-body');
+    if (data.error || !data.length) { b.innerHTML = '<tr><td colspan="7" class="empty">No events</td></tr>'; return; }
+    b.innerHTML = data.map(e => `
+        <tr>
+            <td class="mono">${e.event_id}</td>
+            <td>${e.event_description}</td>
+            <td>${sevBadge(e.threat_level)}</td>
+            <td class="mono">${fmt(e.event_time)}</td>
+            <td style="color:var(--orange)">${e.attack_name || '—'}</td>
+            <td>${sevBadge(e.risk_level)}</td>
+            <td>${e.sig_description || '—'}</td>
+        </tr>`).join('');
+}
+
+// ── SIGNATURES ───────────────────────────────────────────────────
+async function loadSignatures() {
+    const data = await api('/signatures');
+    const b = document.getElementById('signatures-body');
+    if (data.error || !data.length) { b.innerHTML = '<tr><td colspan="5" class="empty">No signatures</td></tr>'; return; }
+    b.innerHTML = data.map(s => `
+        <tr>
+            <td class="mono">${s.signature_id}</td>
+            <td style="color:var(--orange)">${s.attack_name}</td>
+            <td>${sevBadge(s.risk_level)}</td>
+            <td class="mono" style="color:var(--text2);max-width:200px;overflow:hidden;text-overflow:ellipsis">${s.rule_pattern}</td>
+            <td>${s.description}</td>
+        </tr>`).join('');
+}
+
+// ── TRAFFIC ──────────────────────────────────────────────────────
+async function loadTraffic() {
+    const data = await api('/traffic');
+    const b = document.getElementById('traffic-body');
+    if (data.error || !data.length) { b.innerHTML = '<tr><td colspan="11" class="empty">No traffic logs</td></tr>'; return; }
+    b.innerHTML = data.map(t => `
+        <tr>
+            <td class="mono">${t.log_id}</td>
+            <td class="mono" style="color:var(--cyan)">${t.src_ip}</td>
+            <td class="mono">${t.dest_ip}</td>
+            <td><span class="badge" style="color:var(--purple);background:var(--purple-dim);border-color:rgba(167,139,250,0.3)">${t.protocol}</span></td>
+            <td class="mono">${t.port}</td>
+            <td>${t.packet_size} B</td>
+            <td>${t.session_duration}s</td>
+            <td>${t.interface_name || '—'}</td>
+            <td>${t.device_name || '—'}</td>
+            <td>${t.location || '—'}</td>
+            <td class="mono">${fmt(t.timestamp)}</td>
+        </tr>`).join('');
+}
+
+// ── DEVICES ──────────────────────────────────────────────────────
+async function loadDevices() {
+    const data = await api('/devices');
+    const b = document.getElementById('devices-body');
+    if (data.error || !data.length) { b.innerHTML = '<tr><td colspan="6" class="empty">No devices</td></tr>'; return; }
+    b.innerHTML = data.map(d => `
+        <tr>
+            <td class="mono">${d.device_id}</td>
+            <td style="color:var(--cyan)">${d.device_name}</td>
+            <td class="mono">${d.device_ip}</td>
+            <td>${d.location}</td>
+            <td><span class="badge" style="color:var(--purple);background:var(--purple-dim);border-color:rgba(167,139,250,0.3)">${d.device_type}</span></td>
+            <td>
+                <button class="btn btn-danger" onclick="deleteDevice(${d.device_id})">✕ DEL</button>
+            </td>
+        </tr>`).join('');
+}
+
+async function addDevice() {
+    const body = {
+        device_id:   document.getElementById('d-id').value,
+        device_name: document.getElementById('d-name').value,
+        device_ip:   document.getElementById('d-ip').value,
+        location:    document.getElementById('d-loc').value,
+        device_type: document.getElementById('d-type').value
+    };
+    if (!body.device_id || !body.device_name || !body.device_ip) return toast('ID, Name, IP required', true);
+    const r = await api('/devices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+    if (r.error) return toast('Error: ' + r.error, true);
+    toast('✔ Device added!');
+    ['d-id','d-name','d-ip','d-loc'].forEach(id => document.getElementById(id).value = '');
+    loadDevices();
+}
+
+async function deleteDevice(id) {
+    if (!confirm(`Delete Device #${id}?`)) return;
+    const r = await api('/devices/' + id, { method: 'DELETE' });
+    if (r.error) return toast('Error: ' + r.error, true);
+    toast('✔ Device deleted');
+    loadDevices();
+}
+
+// ── ACTIONS ──────────────────────────────────────────────────────
+async function loadActions() {
+    const data = await api('/actions');
+    const b = document.getElementById('actions-body');
+    if (data.error || !data.length) { b.innerHTML = '<tr><td colspan="9" class="empty">No actions</td></tr>'; return; }
+    b.innerHTML = data.map(a => `
+        <tr>
+            <td class="mono">${a.action_id}</td>
+            <td>${a.action_type}</td>
+            <td>${statusBadge(a.action_status)}</td>
+            <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis">${a.alert_message || '—'}</td>
+            <td>${sevBadge(a.severity)}</td>
+            <td>${a.admin_name || '—'}</td>
+            <td style="color:var(--text2)">${a.admin_role || '—'}</td>
+            <td class="mono">${fmt(a.action_time)}</td>
+            <td>
+                ${a.action_status !== 'Executed'
+                    ? `<button class="btn btn-success" onclick="markExecuted(${a.action_id})">✔ Execute</button>`
+                    : '<span style="color:var(--text2);font-size:10px">Done</span>'}
+            </td>
+        </tr>`).join('');
+}
+
+async function addAction() {
+    const body = {
+        action_id:     document.getElementById('ac-id').value,
+        action_type:   document.getElementById('ac-type').value,
+        action_status: document.getElementById('ac-status').value,
+        alert_id:      document.getElementById('ac-alert').value,
+        admin_id:      document.getElementById('ac-admin').value
+    };
+    if (!body.action_id || !body.alert_id || !body.admin_id) return toast('Action ID, Alert ID, Admin ID required', true);
+    const r = await api('/actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+    if (r.error) return toast('Error: ' + r.error, true);
+    toast('✔ Action added!');
+    ['ac-id','ac-alert','ac-admin'].forEach(id => document.getElementById(id).value = '');
+    loadActions();
+}
+
+async function markExecuted(id) {
+    const r = await api('/actions/' + id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action_status: 'Executed' })
+    });
+    if (r.error) return toast('Error: ' + r.error, true);
+    toast('✔ Action marked as Executed');
+    loadActions();
+}
+
+// ── ADMINS ───────────────────────────────────────────────────────
+async function loadAdmins() {
+    const data = await api('/admins');
+    const b = document.getElementById('admins-body');
+    if (data.error || !data.length) { b.innerHTML = '<tr><td colspan="5" class="empty">No admins</td></tr>'; return; }
+    b.innerHTML = data.map(a => `
+        <tr>
+            <td class="mono">${a.admin_id}</td>
+            <td style="color:var(--cyan)">${a.name}</td>
+            <td>${a.email}</td>
+            <td><span class="badge" style="color:var(--purple);background:var(--purple-dim);border-color:rgba(167,139,250,0.3)">${a.role}</span></td>
+            <td class="mono">${a.phones || '—'}</td>
+        </tr>`).join('');
+}
+
+// ── INIT ─────────────────────────────────────────────────────────
+loadDashboard();
+</script>
+
+</body>
+</html>
