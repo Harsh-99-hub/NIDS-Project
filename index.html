@@ -5,510 +5,626 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NIDS — Network Intrusion Detection System</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-/* ── RESET & BASE ───────────────────────────────────────────────── */
+
+/* ── RESET ──────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-    --bg0: #060a0f;
-    --bg1: #0b1018;
-    --bg2: #101820;
-    --bg3: #172030;
-    --border: rgba(0,210,255,0.12);
-    --border-bright: rgba(0,210,255,0.35);
-    --cyan: #00d2ff;
-    --cyan-dim: rgba(0,210,255,0.18);
-    --green: #00ff9d;
-    --green-dim: rgba(0,255,157,0.15);
-    --red: #ff3b5c;
-    --red-dim: rgba(255,59,92,0.18);
-    --orange: #ff8c42;
-    --orange-dim: rgba(255,140,66,0.18);
-    --yellow: #ffe566;
-    --yellow-dim: rgba(255,229,102,0.15);
-    --purple: #a78bfa;
-    --purple-dim: rgba(167,139,250,0.15);
-    --text0: #e8f4ff;
-    --text1: #8aafc8;
-    --text2: #4a6680;
-    --font-head: 'Orbitron', monospace;
-    --font-mono: 'JetBrains Mono', monospace;
-    --sidebar-w: 240px;
+    /* Core palette */
+    --bg:        #0d0f12;
+    --surface:   #13161b;
+    --surface2:  #1a1e25;
+    --surface3:  #21262f;
+    --border:    rgba(255,255,255,0.06);
+    --border-md: rgba(255,255,255,0.10);
+    --border-hi: rgba(255,255,255,0.16);
+
+    /* Accent — cool slate blue, not electric */
+    --accent:       #4f8ef7;
+    --accent-dim:   rgba(79,142,247,0.12);
+    --accent-glow:  rgba(79,142,247,0.25);
+
+    /* Semantic colors */
+    --critical: #f05252;
+    --critical-dim: rgba(240,82,82,0.10);
+    --high:     #f59e0b;
+    --high-dim: rgba(245,158,11,0.10);
+    --medium:   #a78bfa;
+    --medium-dim:rgba(167,139,250,0.10);
+    --low:      #34d399;
+    --low-dim:  rgba(52,211,153,0.10);
+    --executed: #34d399;
+    --pending:  #f59e0b;
+
+    /* Text */
+    --t0: #f1f3f5;
+    --t1: #8b95a1;
+    --t2: #4b5563;
+    --t3: #2d3540;
+
+    /* Typography */
+    --font: 'DM Sans', sans-serif;
+    --mono: 'DM Mono', monospace;
+
+    /* Layout */
+    --sidebar: 220px;
+    --topbar:  52px;
+    --radius:  8px;
 }
 
-html, body { height: 100%; overflow: hidden; }
+html, body { height: 100%; overflow: hidden; background: var(--bg); }
 
 body {
-    background: var(--bg0);
-    color: var(--text0);
-    font-family: var(--font-mono);
-    font-size: 13px;
+    font-family: var(--font);
+    font-size: 13.5px;
+    color: var(--t0);
     display: flex;
 }
 
-/* Scanline overlay */
-body::before {
+/* Subtle noise texture overlay */
+body::after {
     content: '';
-    position: fixed;
-    inset: 0;
-    background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0,0,0,0.03) 2px,
-        rgba(0,0,0,0.03) 4px
-    );
-    pointer-events: none;
-    z-index: 9999;
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 9999; opacity: 0.4;
 }
 
 /* ── SCROLLBAR ──────────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: var(--bg1); }
-::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 2px; }
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 2px; }
 
 /* ── SIDEBAR ────────────────────────────────────────────────────── */
 #sidebar {
-    width: var(--sidebar-w);
-    min-width: var(--sidebar-w);
+    width: var(--sidebar);
+    min-width: var(--sidebar);
     height: 100vh;
-    background: var(--bg1);
+    background: var(--surface);
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    position: relative;
-}
-
-#sidebar::after {
-    content: '';
-    position: absolute;
-    top: 0; right: 0;
-    width: 1px; height: 100%;
-    background: linear-gradient(to bottom, transparent, var(--cyan), transparent);
-    opacity: 0.4;
 }
 
 .brand {
-    padding: 24px 20px 20px;
+    height: var(--topbar);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 16px;
     border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
 }
-.brand-icon {
-    width: 36px; height: 36px;
-    background: linear-gradient(135deg, var(--cyan), var(--green));
-    border-radius: 8px;
+
+.brand-mark {
+    width: 26px; height: 26px;
+    background: var(--accent);
+    border-radius: 6px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 18px;
-    margin-bottom: 10px;
-    box-shadow: 0 0 20px rgba(0,210,255,0.4);
-}
-.brand-name {
-    font-family: var(--font-head);
     font-size: 13px;
-    letter-spacing: 3px;
-    color: var(--cyan);
+    flex-shrink: 0;
+    box-shadow: 0 0 0 1px rgba(79,142,247,0.4), 0 4px 12px rgba(79,142,247,0.3);
+}
+
+.brand-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.brand-name {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--t0);
     line-height: 1;
 }
+
 .brand-sub {
-    font-size: 9px;
-    color: var(--text2);
-    letter-spacing: 2px;
-    margin-top: 4px;
-    text-transform: uppercase;
+    font-size: 10px;
+    color: var(--t2);
+    letter-spacing: 0.01em;
+    margin-top: 2px;
 }
 
-.live-dot {
+.status-pill {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    margin-top: 10px;
-    font-size: 9px;
-    color: var(--green);
-    letter-spacing: 1px;
+    gap: 5px;
+    margin: 12px 16px;
+    background: rgba(52,211,153,0.08);
+    border: 1px solid rgba(52,211,153,0.18);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 10.5px;
+    color: var(--low);
+    letter-spacing: 0.02em;
+    font-weight: 500;
 }
-.live-dot::before {
+
+.status-pill::before {
     content: '';
-    width: 6px; height: 6px;
+    width: 5px; height: 5px;
     border-radius: 50%;
-    background: var(--green);
-    box-shadow: 0 0 8px var(--green);
-    animation: pulse 1.5s infinite;
-}
-@keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50%       { opacity: 0.5; transform: scale(0.8); }
+    background: var(--low);
+    animation: blink 2s infinite;
 }
 
-nav { padding: 12px 0; flex: 1; overflow-y: auto; }
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
 
-.nav-section {
-    font-size: 9px;
-    letter-spacing: 2px;
-    color: var(--text2);
-    padding: 14px 20px 6px;
+nav { flex: 1; overflow-y: auto; padding: 4px 0 12px; }
+
+.nav-group-label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
+    color: var(--t2);
+    padding: 14px 16px 5px;
 }
 
 .nav-item {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 10px 20px;
+    gap: 9px;
+    padding: 7px 16px;
     cursor: pointer;
-    color: var(--text1);
-    font-size: 12px;
-    letter-spacing: 0.5px;
-    transition: all 0.2s;
-    position: relative;
+    color: var(--t1);
+    font-size: 13px;
+    font-weight: 400;
+    border-radius: 0;
+    transition: color 0.15s, background 0.15s;
     user-select: none;
+    position: relative;
 }
-.nav-item:hover { color: var(--text0); background: var(--cyan-dim); }
+
+.nav-item:hover { color: var(--t0); background: rgba(255,255,255,0.03); }
+
 .nav-item.active {
-    color: var(--cyan);
-    background: var(--cyan-dim);
+    color: var(--t0);
+    background: rgba(255,255,255,0.05);
+    font-weight: 500;
 }
+
 .nav-item.active::before {
     content: '';
     position: absolute;
-    left: 0; top: 0; bottom: 0;
+    left: 0; top: 4px; bottom: 4px;
     width: 2px;
-    background: var(--cyan);
-    box-shadow: 0 0 8px var(--cyan);
+    background: var(--accent);
+    border-radius: 0 2px 2px 0;
 }
-.nav-item .icon { font-size: 15px; width: 18px; text-align: center; }
+
+.nav-icon {
+    font-size: 14px;
+    width: 16px;
+    text-align: center;
+    opacity: 0.8;
+}
 
 .nav-badge {
     margin-left: auto;
-    background: var(--red-dim);
-    color: var(--red);
-    border: 1px solid rgba(255,59,92,0.3);
+    background: var(--critical-dim);
+    color: var(--critical);
     border-radius: 10px;
     padding: 1px 7px;
     font-size: 10px;
+    font-family: var(--mono);
+    font-weight: 500;
 }
 
-/* ── MAIN AREA ──────────────────────────────────────────────────── */
+/* ── MAIN ───────────────────────────────────────────────────────── */
 #main {
     flex: 1;
     display: flex;
     flex-direction: column;
     height: 100vh;
     overflow: hidden;
+    min-width: 0;
 }
 
-/* Top Bar */
+/* ── TOPBAR ─────────────────────────────────────────────────────── */
 #topbar {
-    height: 56px;
-    min-height: 56px;
-    background: var(--bg1);
+    height: var(--topbar);
+    min-height: var(--topbar);
+    background: var(--surface);
     border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
-    padding: 0 24px;
-    gap: 16px;
+    padding: 0 20px;
+    gap: 12px;
+    flex-shrink: 0;
 }
+
 .topbar-title {
-    font-family: var(--font-head);
-    font-size: 11px;
-    letter-spacing: 3px;
-    color: var(--cyan);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--t0);
     flex: 1;
 }
-.topbar-time {
-    font-size: 11px;
-    color: var(--text2);
-    letter-spacing: 1px;
-}
-.refresh-btn {
-    background: transparent;
-    border: 1px solid var(--border-bright);
-    color: var(--cyan);
-    padding: 6px 14px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 1px;
-    transition: all 0.2s;
-}
-.refresh-btn:hover { background: var(--cyan-dim); }
 
-/* Content */
+.topbar-clock {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--t2);
+    letter-spacing: 0.02em;
+}
+
+.btn-refresh {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface3);
+    border: 1px solid var(--border-md);
+    color: var(--t1);
+    padding: 5px 12px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-family: var(--font);
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.15s;
+}
+
+.btn-refresh:hover {
+    border-color: var(--border-hi);
+    color: var(--t0);
+    background: var(--surface3);
+}
+
+.btn-refresh .spin { display: inline-block; }
+.btn-refresh:active .spin { animation: spin 0.4s linear; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── CONTENT ────────────────────────────────────────────────────── */
 #content {
     flex: 1;
     overflow-y: auto;
-    padding: 24px;
+    padding: 20px;
+    background: var(--bg);
 }
 
-/* ── PAGES ──────────────────────────────────────────────────────── */
-.page { display: none; }
+.page { display: none; animation: fadeIn 0.2s ease; }
 .page.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
 /* ── STAT CARDS ─────────────────────────────────────────────────── */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 14px;
-    margin-bottom: 24px;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
 }
+
+@media (max-width: 1100px) { .stats-grid { grid-template-columns: repeat(3, 1fr); } }
+
 .stat-card {
-    background: var(--bg2);
+    background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 18px;
+    border-radius: var(--radius);
+    padding: 16px;
     position: relative;
     overflow: hidden;
-    transition: border-color 0.2s;
+    transition: border-color 0.15s;
 }
-.stat-card:hover { border-color: var(--border-bright); }
-.stat-card::after {
-    content: '';
-    position: absolute;
-    top: -30px; right: -30px;
-    width: 80px; height: 80px;
-    border-radius: 50%;
-    opacity: 0.06;
-}
-.stat-card.cyan::after  { background: var(--cyan);   }
-.stat-card.red::after   { background: var(--red);    }
-.stat-card.green::after { background: var(--green);  }
-.stat-card.orange::after{ background: var(--orange); }
-.stat-card.purple::after{ background: var(--purple); }
-.stat-card.yellow::after{ background: var(--yellow); }
+
+.stat-card:hover { border-color: var(--border-md); }
 
 .stat-label {
-    font-size: 9px;
-    letter-spacing: 2px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: var(--text2);
+    color: var(--t2);
     margin-bottom: 10px;
 }
-.stat-value {
-    font-family: var(--font-head);
-    font-size: 28px;
-    line-height: 1;
-}
-.stat-card.cyan   .stat-value { color: var(--cyan);   }
-.stat-card.red    .stat-value { color: var(--red);    }
-.stat-card.green  .stat-value { color: var(--green);  }
-.stat-card.orange .stat-value { color: var(--orange); }
-.stat-card.purple .stat-value { color: var(--purple); }
-.stat-card.yellow .stat-value { color: var(--yellow); }
 
-.stat-icon {
-    position: absolute;
-    right: 16px; top: 50%;
-    transform: translateY(-50%);
-    font-size: 28px;
-    opacity: 0.2;
+.stat-value {
+    font-size: 26px;
+    font-weight: 600;
+    font-family: var(--mono);
+    line-height: 1;
+    color: var(--t0);
 }
+
+.stat-indicator {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    border-radius: 0 0 var(--radius) var(--radius);
+}
+
+.si-blue   { background: linear-gradient(90deg, transparent, var(--accent), transparent); }
+.si-red    { background: linear-gradient(90deg, transparent, var(--critical), transparent); }
+.si-green  { background: linear-gradient(90deg, transparent, var(--low), transparent); }
+.si-amber  { background: linear-gradient(90deg, transparent, var(--high), transparent); }
+.si-purple { background: linear-gradient(90deg, transparent, var(--medium), transparent); }
 
 /* ── SECTION HEADER ─────────────────────────────────────────────── */
 .section-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 14px;
+    margin-bottom: 10px;
 }
+
 .section-title {
-    font-family: var(--font-head);
-    font-size: 11px;
-    letter-spacing: 2px;
-    color: var(--cyan);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-.section-title::before {
-    content: '';
-    display: inline-block;
-    width: 3px; height: 14px;
-    background: var(--cyan);
-    border-radius: 2px;
-    box-shadow: 0 0 8px var(--cyan);
-}
-
-/* ── CARDS & PANELS ─────────────────────────────────────────────── */
-.panel {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    overflow: hidden;
-    margin-bottom: 20px;
-}
-
-/* ── TABLE ──────────────────────────────────────────────────────── */
-.table-wrap { overflow-x: auto; }
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-thead th {
-    background: var(--bg3);
-    color: var(--text2);
-    font-size: 9px;
-    letter-spacing: 2px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--t1);
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    padding: 10px 14px;
+}
+
+/* ── PANELS ─────────────────────────────────────────────────────── */
+.panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+
+/* ── TABLES ─────────────────────────────────────────────────────── */
+.table-wrap { overflow-x: auto; }
+
+table { width: 100%; border-collapse: collapse; }
+
+thead th {
+    background: var(--surface2);
+    color: var(--t2);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 9px 14px;
     text-align: left;
     white-space: nowrap;
     border-bottom: 1px solid var(--border);
 }
+
 tbody tr {
     border-bottom: 1px solid var(--border);
-    transition: background 0.15s;
+    transition: background 0.1s;
 }
+
 tbody tr:last-child { border-bottom: none; }
-tbody tr:hover { background: rgba(0,210,255,0.04); }
+
+tbody tr:hover { background: rgba(255,255,255,0.02); }
+
 tbody td {
     padding: 10px 14px;
-    color: var(--text0);
-    font-size: 12px;
+    color: var(--t0);
+    font-size: 12.5px;
     vertical-align: middle;
     white-space: nowrap;
 }
-.mono { font-family: var(--font-mono); color: var(--text1); }
+
+/* Alternating subtle stripe */
+tbody tr:nth-child(even) { background: rgba(255,255,255,0.012); }
+tbody tr:nth-child(even):hover { background: rgba(255,255,255,0.025); }
+
+.mono { font-family: var(--mono); color: var(--t1); font-size: 12px; }
+.dim  { color: var(--t1); }
 
 /* ── SEVERITY BADGES ────────────────────────────────────────────── */
 .badge {
-    display: inline-block;
-    padding: 2px 10px;
-    border-radius: 20px;
-    font-size: 10px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    font-weight: 600;
-    border: 1px solid;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 8px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    border: 1px solid transparent;
 }
-.badge-critical { color: var(--red);    background: var(--red-dim);    border-color: rgba(255,59,92,0.3);   }
-.badge-high     { color: var(--orange); background: var(--orange-dim); border-color: rgba(255,140,66,0.3);  }
-.badge-medium   { color: var(--yellow); background: var(--yellow-dim); border-color: rgba(255,229,102,0.3); }
-.badge-low      { color: var(--green);  background: var(--green-dim);  border-color: rgba(0,255,157,0.3);   }
-.badge-executed { color: var(--green);  background: var(--green-dim);  border-color: rgba(0,255,157,0.3);   }
-.badge-pending  { color: var(--yellow); background: var(--yellow-dim); border-color: rgba(255,229,102,0.3); }
+
+.badge::before {
+    content: '';
+    width: 4px; height: 4px;
+    border-radius: 50%;
+}
+
+.badge-critical {
+    color: var(--critical);
+    background: var(--critical-dim);
+    border-color: rgba(240,82,82,0.2);
+}
+.badge-critical::before { background: var(--critical); }
+
+.badge-high {
+    color: var(--high);
+    background: var(--high-dim);
+    border-color: rgba(245,158,11,0.2);
+}
+.badge-high::before { background: var(--high); }
+
+.badge-medium {
+    color: var(--medium);
+    background: var(--medium-dim);
+    border-color: rgba(167,139,250,0.2);
+}
+.badge-medium::before { background: var(--medium); }
+
+.badge-low {
+    color: var(--low);
+    background: var(--low-dim);
+    border-color: rgba(52,211,153,0.2);
+}
+.badge-low::before { background: var(--low); }
+
+.badge-executed {
+    color: var(--low);
+    background: var(--low-dim);
+    border-color: rgba(52,211,153,0.2);
+}
+.badge-executed::before { background: var(--low); }
+
+.badge-pending {
+    color: var(--high);
+    background: var(--high-dim);
+    border-color: rgba(245,158,11,0.2);
+}
+.badge-pending::before { background: var(--high); }
+
+.badge-proto {
+    color: var(--t1);
+    background: var(--surface3);
+    border-color: var(--border);
+    font-family: var(--mono);
+}
+.badge-proto::before { display: none; }
+
+.badge-type {
+    color: var(--accent);
+    background: var(--accent-dim);
+    border-color: rgba(79,142,247,0.2);
+}
+.badge-type::before { display: none; }
 
 /* ── FORMS ──────────────────────────────────────────────────────── */
 .form-panel {
-    background: var(--bg2);
+    background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 20px;
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 16px;
 }
+
 .form-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
     margin-bottom: 14px;
 }
+
 .form-group label {
     display: block;
-    font-size: 9px;
-    letter-spacing: 2px;
-    color: var(--text2);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    margin-bottom: 6px;
+    color: var(--t2);
+    margin-bottom: 5px;
 }
+
 .form-group input,
 .form-group select {
     width: 100%;
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    color: var(--text0);
-    font-family: var(--font-mono);
-    font-size: 12px;
-    padding: 8px 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border-md);
+    border-radius: 6px;
+    color: var(--t0);
+    font-family: var(--font);
+    font-size: 12.5px;
+    padding: 7px 10px;
     outline: none;
-    transition: border-color 0.2s;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    -webkit-appearance: none;
 }
-.form-group input:focus,
-.form-group select:focus { border-color: var(--cyan); }
-.form-group select option { background: var(--bg2); }
 
+.form-group input::placeholder { color: var(--t2); }
+
+.form-group input:focus,
+.form-group select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-dim);
+}
+
+.form-group select option { background: var(--surface2); }
+
+/* ── BUTTONS ────────────────────────────────────────────────────── */
 .btn {
-    padding: 8px 20px;
-    border-radius: 4px;
-    border: 1px solid;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 6px;
+    border: 1px solid transparent;
     cursor: pointer;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 1px;
-    transition: all 0.2s;
+    font-family: var(--font);
+    font-size: 12.5px;
+    font-weight: 500;
+    transition: all 0.15s;
+    white-space: nowrap;
 }
+
 .btn-primary {
-    background: var(--cyan-dim);
-    border-color: var(--cyan);
-    color: var(--cyan);
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
 }
-.btn-primary:hover { background: rgba(0,210,255,0.3); }
+.btn-primary:hover { background: #6aa0f8; box-shadow: 0 0 0 2px var(--accent-dim); }
+
+.btn-ghost {
+    background: transparent;
+    border-color: var(--border-md);
+    color: var(--t1);
+}
+.btn-ghost:hover { border-color: var(--border-hi); color: var(--t0); background: rgba(255,255,255,0.03); }
+
 .btn-danger {
-    background: var(--red-dim);
-    border-color: rgba(255,59,92,0.4);
-    color: var(--red);
+    background: transparent;
+    border-color: rgba(240,82,82,0.25);
+    color: var(--critical);
     padding: 4px 10px;
-    font-size: 10px;
+    font-size: 11.5px;
 }
-.btn-danger:hover { background: rgba(255,59,92,0.3); }
+.btn-danger:hover { background: var(--critical-dim); border-color: rgba(240,82,82,0.4); }
+
 .btn-success {
-    background: var(--green-dim);
-    border-color: rgba(0,255,157,0.4);
-    color: var(--green);
+    background: transparent;
+    border-color: rgba(52,211,153,0.25);
+    color: var(--low);
     padding: 4px 10px;
-    font-size: 10px;
+    font-size: 11.5px;
 }
-.btn-success:hover { background: rgba(0,255,157,0.3); }
+.btn-success:hover { background: var(--low-dim); border-color: rgba(52,211,153,0.4); }
+
+/* ── GRID 2 COL ─────────────────────────────────────────────────── */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 960px) { .grid2 { grid-template-columns: 1fr; } }
+
+/* ── STATE ROWS ─────────────────────────────────────────────────── */
+.loading-row td, .empty-row td {
+    text-align: center;
+    padding: 28px !important;
+    color: var(--t2);
+    font-size: 12px;
+    letter-spacing: 0.02em;
+}
+
+/* Critical row accent */
+tr.row-critical { border-left: 2px solid var(--critical); }
 
 /* ── TOAST ──────────────────────────────────────────────────────── */
 #toast {
     position: fixed;
-    bottom: 24px; right: 24px;
-    background: var(--bg3);
-    border: 1px solid var(--border-bright);
-    border-radius: 6px;
-    padding: 12px 20px;
-    color: var(--cyan);
-    font-size: 12px;
-    letter-spacing: 0.5px;
+    bottom: 20px; right: 20px;
+    background: var(--surface3);
+    border: 1px solid var(--border-hi);
+    border-radius: var(--radius);
+    padding: 10px 16px;
+    color: var(--t0);
+    font-size: 12.5px;
+    font-weight: 500;
     opacity: 0;
-    transform: translateY(10px);
-    transition: all 0.3s;
+    transform: translateY(8px);
+    transition: all 0.2s;
     z-index: 10000;
     pointer-events: none;
-    max-width: 300px;
+    max-width: 280px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
 }
-#toast.show { opacity: 1; transform: translateY(0); }
-#toast.error { color: var(--red); border-color: rgba(255,59,92,0.5); }
+#toast.show { opacity: 1; transform: none; }
+#toast.error { border-color: rgba(240,82,82,0.4); color: var(--critical); }
+#toast.success { border-color: rgba(52,211,153,0.3); color: var(--low); }
 
-/* ── LOADING ────────────────────────────────────────────────────── */
-.loading {
-    text-align: center;
-    padding: 40px;
-    color: var(--text2);
-    font-size: 11px;
-    letter-spacing: 2px;
-}
-.loading::after {
-    content: '...';
-    animation: dots 1.5s infinite;
-}
-@keyframes dots {
-    0%   { content: '.'; }
-    33%  { content: '..'; }
-    66%  { content: '...'; }
-}
-
-/* ── EMPTY STATE ────────────────────────────────────────────────── */
-.empty { text-align: center; padding: 40px; color: var(--text2); font-size: 11px; }
-
-/* ── ALERT ROW GLOW for Critical ─────────────────────────────────── */
-tr.critical-row td:first-child { border-left: 2px solid var(--red); }
-tr.critical-row { background: rgba(255,59,92,0.03); }
-
-/* ── GRID 2-COL ─────────────────────────────────────────────────── */
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-@media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -516,44 +632,47 @@ tr.critical-row { background: rgba(255,59,92,0.03); }
 <!-- ━━━━━━━━━━━━━━━━━━━━━━━━ SIDEBAR ━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
 <div id="sidebar">
     <div class="brand">
-        <div class="brand-icon">🛡️</div>
-        <div class="brand-name">NIDS</div>
-        <div class="brand-sub">Network Intrusion Detection</div>
-        <div class="live-dot">SYSTEM ACTIVE</div>
+        <div class="brand-mark">🛡</div>
+        <div class="brand-text">
+            <div class="brand-name">NIDS</div>
+            <div class="brand-sub">Intrusion Detection</div>
+        </div>
     </div>
 
+    <div class="status-pill">System Active</div>
+
     <nav>
-        <div class="nav-section">Overview</div>
+        <div class="nav-group-label">Overview</div>
         <div class="nav-item active" onclick="showPage('dashboard')">
-            <span class="icon">📊</span> Dashboard
+            <span class="nav-icon">⬛</span> Dashboard
         </div>
 
-        <div class="nav-section">Threats</div>
+        <div class="nav-group-label">Threats</div>
         <div class="nav-item" onclick="showPage('alerts')">
-            <span class="icon">🚨</span> Alerts
+            <span class="nav-icon">🔔</span> Alerts
             <span class="nav-badge" id="alert-badge">—</span>
         </div>
         <div class="nav-item" onclick="showPage('events')">
-            <span class="icon">⚡</span> Intrusion Events
+            <span class="nav-icon">⚡</span> Intrusion Events
         </div>
         <div class="nav-item" onclick="showPage('signatures')">
-            <span class="icon">🔍</span> Attack Signatures
+            <span class="nav-icon">🔍</span> Attack Signatures
         </div>
 
-        <div class="nav-section">Network</div>
+        <div class="nav-group-label">Network</div>
         <div class="nav-item" onclick="showPage('traffic')">
-            <span class="icon">📡</span> Traffic Logs
+            <span class="nav-icon">📡</span> Traffic Logs
         </div>
         <div class="nav-item" onclick="showPage('devices')">
-            <span class="icon">🖥️</span> Devices
+            <span class="nav-icon">🖥</span> Devices
         </div>
 
-        <div class="nav-section">Management</div>
+        <div class="nav-group-label">Management</div>
         <div class="nav-item" onclick="showPage('actions')">
-            <span class="icon">⚙️</span> Response Actions
+            <span class="nav-icon">⚙</span> Response Actions
         </div>
         <div class="nav-item" onclick="showPage('admins')">
-            <span class="icon">👤</span> Admins
+            <span class="nav-icon">👤</span> Admins
         </div>
     </nav>
 </div>
@@ -561,52 +680,55 @@ tr.critical-row { background: rgba(255,59,92,0.03); }
 <!-- ━━━━━━━━━━━━━━━━━━━━━━━━ MAIN ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
 <div id="main">
     <div id="topbar">
-        <div class="topbar-title" id="page-title">DASHBOARD OVERVIEW</div>
-        <div class="topbar-time" id="clock">—</div>
-        <button class="refresh-btn" onclick="refreshCurrentPage()">↻ REFRESH</button>
+        <div class="topbar-title" id="page-title">Dashboard</div>
+        <div class="topbar-clock" id="clock">—</div>
+        <button class="btn-refresh" onclick="refreshCurrentPage()">
+            <span class="spin">↻</span> Refresh
+        </button>
     </div>
 
     <div id="content">
 
-        <!-- ═══════════════ DASHBOARD PAGE ═══════════════ -->
+        <!-- ══════════════ DASHBOARD ══════════════ -->
         <div class="page active" id="page-dashboard">
+
             <div class="stats-grid">
-                <div class="stat-card cyan">
+                <div class="stat-card">
                     <div class="stat-label">Total Alerts</div>
                     <div class="stat-value" id="s-total">—</div>
-                    <div class="stat-icon">🚨</div>
+                    <div class="stat-indicator si-blue"></div>
                 </div>
-                <div class="stat-card red">
+                <div class="stat-card">
                     <div class="stat-label">Critical / High</div>
-                    <div class="stat-value" id="s-critical">—</div>
-                    <div class="stat-icon">🔴</div>
+                    <div class="stat-value" id="s-critical" style="color:var(--critical)">—</div>
+                    <div class="stat-indicator si-red"></div>
                 </div>
-                <div class="stat-card green">
+                <div class="stat-card">
                     <div class="stat-label">Devices Online</div>
-                    <div class="stat-value" id="s-devices">—</div>
-                    <div class="stat-icon">🖥️</div>
+                    <div class="stat-value" id="s-devices" style="color:var(--low)">—</div>
+                    <div class="stat-indicator si-green"></div>
                 </div>
-                <div class="stat-card orange">
+                <div class="stat-card">
                     <div class="stat-label">Traffic Logs</div>
                     <div class="stat-value" id="s-traffic">—</div>
-                    <div class="stat-icon">📡</div>
+                    <div class="stat-indicator si-amber"></div>
                 </div>
-                <div class="stat-card purple">
+                <div class="stat-card">
                     <div class="stat-label">Actions Taken</div>
-                    <div class="stat-value" id="s-actions">—</div>
-                    <div class="stat-icon">⚙️</div>
+                    <div class="stat-value" id="s-actions" style="color:var(--low)">—</div>
+                    <div class="stat-indicator si-green"></div>
                 </div>
-                <div class="stat-card yellow">
+                <div class="stat-card">
                     <div class="stat-label">Intrusion Events</div>
-                    <div class="stat-value" id="s-events">—</div>
-                    <div class="stat-icon">⚡</div>
+                    <div class="stat-value" id="s-events" style="color:var(--high)">—</div>
+                    <div class="stat-indicator si-amber"></div>
                 </div>
             </div>
 
             <div class="grid2">
                 <div>
                     <div class="section-header">
-                        <div class="section-title">RECENT ALERTS</div>
+                        <div class="section-title">Recent Alerts</div>
                     </div>
                     <div class="panel">
                         <div class="table-wrap">
@@ -619,15 +741,16 @@ tr.critical-row { background: rgba(255,59,92,0.03); }
                                     </tr>
                                 </thead>
                                 <tbody id="dash-alerts-body">
-                                    <tr><td colspan="3" class="loading">Loading</td></tr>
+                                    <tr class="loading-row"><td colspan="3">Loading...</td></tr>
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
+
                 <div>
                     <div class="section-header">
-                        <div class="section-title">RECENT ACTIONS</div>
+                        <div class="section-title">Recent Actions</div>
                     </div>
                     <div class="panel">
                         <div class="table-wrap">
@@ -640,7 +763,7 @@ tr.critical-row { background: rgba(255,59,92,0.03); }
                                     </tr>
                                 </thead>
                                 <tbody id="dash-actions-body">
-                                    <tr><td colspan="3" class="loading">Loading</td></tr>
+                                    <tr class="loading-row"><td colspan="3">Loading...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -649,7 +772,7 @@ tr.critical-row { background: rgba(255,59,92,0.03); }
             </div>
 
             <div class="section-header">
-                <div class="section-title">RECENT TRAFFIC</div>
+                <div class="section-title">Recent Traffic</div>
             </div>
             <div class="panel">
                 <div class="table-wrap">
@@ -667,23 +790,23 @@ tr.critical-row { background: rgba(255,59,92,0.03); }
                             </tr>
                         </thead>
                         <tbody id="dash-traffic-body">
-                            <tr><td colspan="8" class="loading">Loading</td></tr>
+                            <tr class="loading-row"><td colspan="8">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- ═══════════════ ALERTS PAGE ═══════════════════ -->
+        <!-- ══════════════ ALERTS ══════════════ -->
         <div class="page" id="page-alerts">
             <div class="form-panel">
-                <div class="section-header">
-                    <div class="section-title">ADD NEW ALERT</div>
+                <div class="section-header" style="margin-bottom:14px">
+                    <div class="section-title">Add New Alert</div>
                 </div>
                 <div class="form-grid">
                     <div class="form-group">
                         <label>Alert ID</label>
-                        <input id="a-id" type="number" placeholder="e.g. 410">
+                        <input id="a-id" type="number" placeholder="e.g. 411">
                     </div>
                     <div class="form-group">
                         <label>Message</label>
@@ -700,18 +823,18 @@ tr.critical-row { background: rgba(255,59,92,0.03); }
                     </div>
                     <div class="form-group">
                         <label>Alert Type</label>
-                        <input id="a-type" placeholder="e.g. Security Alert" value="Security Alert">
+                        <input id="a-type" placeholder="Security Alert" value="Security Alert">
                     </div>
                     <div class="form-group">
                         <label>Event ID (optional)</label>
                         <input id="a-event" type="number" placeholder="e.g. 301">
                     </div>
                 </div>
-                <button class="btn btn-primary" onclick="addAlert()">+ ADD ALERT</button>
+                <button class="btn btn-primary" onclick="addAlert()">+ Add Alert</button>
             </div>
 
             <div class="section-header">
-                <div class="section-title">ALL ALERTS</div>
+                <div class="section-title">All Alerts</div>
             </div>
             <div class="panel">
                 <div class="table-wrap">
@@ -725,21 +848,21 @@ tr.critical-row { background: rgba(255,59,92,0.03); }
                                 <th>Event</th>
                                 <th>Threat Level</th>
                                 <th>Time</th>
-                                <th>Action</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody id="alerts-body">
-                            <tr><td colspan="8" class="loading">Loading</td></tr>
+                            <tr class="loading-row"><td colspan="8">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- ═══════════════ INTRUSION EVENTS ══════════════ -->
+        <!-- ══════════════ EVENTS ══════════════ -->
         <div class="page" id="page-events">
             <div class="section-header">
-                <div class="section-title">INTRUSION EVENTS</div>
+                <div class="section-title">Intrusion Events</div>
             </div>
             <div class="panel">
                 <div class="table-wrap">
@@ -752,21 +875,21 @@ tr.critical-row { background: rgba(255,59,92,0.03); }
                                 <th>Event Time</th>
                                 <th>Attack Name</th>
                                 <th>Risk Level</th>
-                                <th>Sig. Description</th>
+                                <th>Signature Description</th>
                             </tr>
                         </thead>
                         <tbody id="events-body">
-                            <tr><td colspan="7" class="loading">Loading</td></tr>
+                            <tr class="loading-row"><td colspan="7">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- ═══════════════ SIGNATURES ════════════════════ -->
+        <!-- ══════════════ SIGNATURES ══════════════ -->
         <div class="page" id="page-signatures">
             <div class="section-header">
-                <div class="section-title">ATTACK SIGNATURES</div>
+                <div class="section-title">Attack Signatures</div>
             </div>
             <div class="panel">
                 <div class="table-wrap">
@@ -781,17 +904,17 @@ tr.critical-row { background: rgba(255,59,92,0.03); }
                             </tr>
                         </thead>
                         <tbody id="signatures-body">
-                            <tr><td colspan="5" class="loading">Loading</td></tr>
+                            <tr class="loading-row"><td colspan="5">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- ═══════════════ TRAFFIC PAGE ══════════════════ -->
+        <!-- ══════════════ TRAFFIC ══════════════ -->
         <div class="page" id="page-traffic">
             <div class="section-header">
-                <div class="section-title">TRAFFIC LOGS</div>
+                <div class="section-title">Traffic Logs</div>
             </div>
             <div class="panel">
                 <div class="table-wrap">
@@ -804,7 +927,7 @@ tr.critical-row { background: rgba(255,59,92,0.03); }
                                 <th>Protocol</th>
                                 <th>Port</th>
                                 <th>Packet Size</th>
-                                <th>Session (s)</th>
+                                <th>Session</th>
                                 <th>Interface</th>
                                 <th>Device</th>
                                 <th>Location</th>
@@ -812,23 +935,23 @@ tr.critical-row { background: rgba(255,59,92,0.03); }
                             </tr>
                         </thead>
                         <tbody id="traffic-body">
-                            <tr><td colspan="11" class="loading">Loading</td></tr>
+                            <tr class="loading-row"><td colspan="11">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- ═══════════════ DEVICES PAGE ══════════════════ -->
+        <!-- ══════════════ DEVICES ══════════════ -->
         <div class="page" id="page-devices">
             <div class="form-panel">
-                <div class="section-header">
-                    <div class="section-title">ADD DEVICE</div>
+                <div class="section-header" style="margin-bottom:14px">
+                    <div class="section-title">Add Device</div>
                 </div>
                 <div class="form-grid">
                     <div class="form-group">
                         <label>Device ID</label>
-                        <input id="d-id" type="number" placeholder="e.g. 5">
+                        <input id="d-id" type="number" placeholder="e.g. 9">
                     </div>
                     <div class="form-group">
                         <label>Device Name</label>
@@ -836,7 +959,7 @@ tr.critical-row { background: rgba(255,59,92,0.03); }
                     </div>
                     <div class="form-group">
                         <label>IP Address</label>
-                        <input id="d-ip" placeholder="e.g. 192.168.1.20">
+                        <input id="d-ip" placeholder="e.g. 192.168.1.30">
                     </div>
                     <div class="form-group">
                         <label>Location</label>
@@ -853,11 +976,11 @@ tr.critical-row { background: rgba(255,59,92,0.03); }
                         </select>
                     </div>
                 </div>
-                <button class="btn btn-primary" onclick="addDevice()">+ ADD DEVICE</button>
+                <button class="btn btn-primary" onclick="addDevice()">+ Add Device</button>
             </div>
 
             <div class="section-header">
-                <div class="section-title">ALL DEVICES</div>
+                <div class="section-title">All Devices</div>
             </div>
             <div class="panel">
                 <div class="table-wrap">
@@ -869,27 +992,27 @@ tr.critical-row { background: rgba(255,59,92,0.03); }
                                 <th>IP Address</th>
                                 <th>Location</th>
                                 <th>Type</th>
-                                <th>Action</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody id="devices-body">
-                            <tr><td colspan="6" class="loading">Loading</td></tr>
+                            <tr class="loading-row"><td colspan="6">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- ═══════════════ RESPONSE ACTIONS ══════════════ -->
+        <!-- ══════════════ ACTIONS ══════════════ -->
         <div class="page" id="page-actions">
             <div class="form-panel">
-                <div class="section-header">
-                    <div class="section-title">ADD RESPONSE ACTION</div>
+                <div class="section-header" style="margin-bottom:14px">
+                    <div class="section-title">Add Response Action</div>
                 </div>
                 <div class="form-grid">
                     <div class="form-group">
                         <label>Action ID</label>
-                        <input id="ac-id" type="number" placeholder="e.g. 10">
+                        <input id="ac-id" type="number" placeholder="e.g. 611">
                     </div>
                     <div class="form-group">
                         <label>Action Type</label>
@@ -919,11 +1042,11 @@ tr.critical-row { background: rgba(255,59,92,0.03); }
                         <input id="ac-admin" type="number" placeholder="e.g. 501">
                     </div>
                 </div>
-                <button class="btn btn-primary" onclick="addAction()">+ ADD ACTION</button>
+                <button class="btn btn-primary" onclick="addAction()">+ Add Action</button>
             </div>
 
             <div class="section-header">
-                <div class="section-title">ALL RESPONSE ACTIONS</div>
+                <div class="section-title">All Response Actions</div>
             </div>
             <div class="panel">
                 <div class="table-wrap">
@@ -938,21 +1061,21 @@ tr.critical-row { background: rgba(255,59,92,0.03); }
                                 <th>Admin</th>
                                 <th>Role</th>
                                 <th>Time</th>
-                                <th>Update</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody id="actions-body">
-                            <tr><td colspan="9" class="loading">Loading</td></tr>
+                            <tr class="loading-row"><td colspan="9">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- ═══════════════ ADMINS PAGE ═══════════════════ -->
+        <!-- ══════════════ ADMINS ══════════════ -->
         <div class="page" id="page-admins">
             <div class="section-header">
-                <div class="section-title">ADMIN USERS</div>
+                <div class="section-title">Admin Users</div>
             </div>
             <div class="panel">
                 <div class="table-wrap">
@@ -967,7 +1090,7 @@ tr.critical-row { background: rgba(255,59,92,0.03); }
                             </tr>
                         </thead>
                         <tbody id="admins-body">
-                            <tr><td colspan="5" class="loading">Loading</td></tr>
+                            <tr class="loading-row"><td colspan="5">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -977,7 +1100,6 @@ tr.critical-row { background: rgba(255,59,92,0.03); }
     </div><!-- /content -->
 </div><!-- /main -->
 
-<!-- Toast -->
 <div id="toast"></div>
 
 <!-- ━━━━━━━━━━━━━━━━━━━━━━━━ SCRIPT ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
@@ -991,19 +1113,19 @@ function fmt(dt) {
 }
 
 function sevBadge(s) {
-    if (!s) return '<span class="badge badge-low">—</span>';
-    const cls = {
+    if (!s) return '<span class="badge" style="color:var(--t2)">—</span>';
+    const map = {
         'Critical': 'badge-critical',
         'High':     'badge-high',
         'Medium':   'badge-medium',
         'Low':      'badge-low'
-    }[s] || 'badge-low';
-    return `<span class="badge ${cls}">${s}</span>`;
+    };
+    return `<span class="badge ${map[s] || 'badge-low'}">${s}</span>`;
 }
 
 function statusBadge(s) {
     return s === 'Executed'
-        ? `<span class="badge badge-executed">${s}</span>`
+        ? `<span class="badge badge-executed">Executed</span>`
         : `<span class="badge badge-pending">${s || 'Pending'}</span>`;
 }
 
@@ -1016,11 +1138,15 @@ async function api(endpoint, opts = {}) {
     }
 }
 
-function toast(msg, isError = false) {
+function toast(msg, type = '') {
     const t = document.getElementById('toast');
     t.textContent = msg;
-    t.className = isError ? 'error show' : 'show';
-    setTimeout(() => { t.className = ''; }, 3000);
+    t.className = type ? `show ${type}` : 'show';
+    setTimeout(() => t.className = '', 3000);
+}
+
+function empty(colspan, msg = 'No data found') {
+    return `<tr class="empty-row"><td colspan="${colspan}">${msg}</td></tr>`;
 }
 
 // ── CLOCK ────────────────────────────────────────────────────────
@@ -1031,17 +1157,17 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-// ── NAV ──────────────────────────────────────────────────────────
+// ── NAVIGATION ───────────────────────────────────────────────────
 let currentPage = 'dashboard';
 const pageTitles = {
-    dashboard:  'DASHBOARD OVERVIEW',
-    alerts:     'ALERTS MANAGEMENT',
-    events:     'INTRUSION EVENTS',
-    signatures: 'ATTACK SIGNATURES',
-    traffic:    'TRAFFIC LOGS',
-    devices:    'DEVICE MANAGEMENT',
-    actions:    'RESPONSE ACTIONS',
-    admins:     'ADMIN USERS'
+    dashboard:  'Dashboard',
+    alerts:     'Alerts',
+    events:     'Intrusion Events',
+    signatures: 'Attack Signatures',
+    traffic:    'Traffic Logs',
+    devices:    'Devices',
+    actions:    'Response Actions',
+    admins:     'Admin Users'
 };
 
 function showPage(name) {
@@ -1049,7 +1175,7 @@ function showPage(name) {
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     document.getElementById('page-' + name).classList.add('active');
     document.querySelectorAll('.nav-item').forEach(n => {
-        if (n.getAttribute('onclick').includes(name)) n.classList.add('active');
+        if (n.getAttribute('onclick')?.includes(name)) n.classList.add('active');
     });
     document.getElementById('page-title').textContent = pageTitles[name];
     currentPage = name;
@@ -1059,25 +1185,18 @@ function showPage(name) {
 function refreshCurrentPage() { loadPage(currentPage); }
 
 function loadPage(name) {
-    ({
-        dashboard:  loadDashboard,
-        alerts:     loadAlerts,
-        events:     loadEvents,
-        signatures: loadSignatures,
-        traffic:    loadTraffic,
-        devices:    loadDevices,
-        actions:    loadActions,
-        admins:     loadAdmins
-    })[name]?.();
+    const map = {
+        dashboard: loadDashboard, alerts: loadAlerts, events: loadEvents,
+        signatures: loadSignatures, traffic: loadTraffic,
+        devices: loadDevices, actions: loadActions, admins: loadAdmins
+    };
+    map[name]?.();
 }
 
 // ── DASHBOARD ────────────────────────────────────────────────────
 async function loadDashboard() {
     const [stats, alerts, actions, traffic] = await Promise.all([
-        api('/stats'),
-        api('/alerts'),
-        api('/actions'),
-        api('/traffic')
+        api('/stats'), api('/alerts'), api('/actions'), api('/traffic')
     ]);
 
     if (!stats.error) {
@@ -1087,74 +1206,61 @@ async function loadDashboard() {
         document.getElementById('s-traffic').textContent  = stats.totalTraffic;
         document.getElementById('s-actions').textContent  = stats.executedActions;
         document.getElementById('s-events').textContent   = stats.totalEvents;
-
-        // badge
         document.getElementById('alert-badge').textContent = stats.totalAlerts;
     }
 
-    // Recent alerts (5)
     const ab = document.getElementById('dash-alerts-body');
     if (!alerts.error && alerts.length) {
         ab.innerHTML = alerts.slice(0, 5).map(a => `
-            <tr class="${a.severity === 'Critical' ? 'critical-row' : ''}">
-                <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis">${a.alert_message}</td>
+            <tr class="${a.severity === 'Critical' ? 'row-critical' : ''}">
+                <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis" class="dim">${a.alert_message}</td>
                 <td>${sevBadge(a.severity)}</td>
                 <td class="mono">${fmt(a.alert_time)}</td>
             </tr>`).join('');
-    } else {
-        ab.innerHTML = '<tr><td colspan="3" class="empty">No alerts</td></tr>';
-    }
+    } else { ab.innerHTML = empty(3); }
 
-    // Recent actions (5)
     const acb = document.getElementById('dash-actions-body');
     if (!actions.error && actions.length) {
         acb.innerHTML = actions.slice(0, 5).map(a => `
             <tr>
                 <td>${a.action_type}</td>
                 <td>${statusBadge(a.action_status)}</td>
-                <td>${a.admin_name || '—'}</td>
+                <td class="dim">${a.admin_name || '—'}</td>
             </tr>`).join('');
-    } else {
-        acb.innerHTML = '<tr><td colspan="3" class="empty">No actions</td></tr>';
-    }
+    } else { acb.innerHTML = empty(3); }
 
-    // Recent traffic (8)
     const tb = document.getElementById('dash-traffic-body');
     if (!traffic.error && traffic.length) {
         tb.innerHTML = traffic.slice(0, 8).map(t => `
             <tr>
                 <td class="mono">${t.log_id}</td>
-                <td class="mono" style="color:var(--cyan)">${t.src_ip}</td>
-                <td class="mono">${t.dest_ip}</td>
-                <td><span class="badge" style="color:var(--purple);background:var(--purple-dim);border-color:rgba(167,139,250,0.3)">${t.protocol}</span></td>
-                <td class="mono">${t.port}</td>
-                <td>${t.packet_size} B</td>
-                <td class="mono">${fmt(t.timestamp)}</td>
-                <td>${t.device_name || '—'}</td>
+                <td class="mono" style="color:var(--accent)">${t.src_ip}</td>
+                <td class="mono dim">${t.dest_ip}</td>
+                <td><span class="badge badge-proto">${t.protocol}</span></td>
+                <td class="mono dim">${t.port}</td>
+                <td class="dim">${t.packet_size} B</td>
+                <td class="mono dim">${fmt(t.timestamp)}</td>
+                <td class="dim">${t.device_name || '—'}</td>
             </tr>`).join('');
-    } else {
-        tb.innerHTML = '<tr><td colspan="8" class="empty">No traffic logs</td></tr>';
-    }
+    } else { tb.innerHTML = empty(8); }
 }
 
 // ── ALERTS ───────────────────────────────────────────────────────
 async function loadAlerts() {
     const data = await api('/alerts');
     const b = document.getElementById('alerts-body');
-    if (data.error) { b.innerHTML = `<tr><td colspan="8" class="empty">Error: ${data.error}</td></tr>`; return; }
-    if (!data.length) { b.innerHTML = '<tr><td colspan="8" class="empty">No alerts found</td></tr>'; return; }
+    if (data.error) { b.innerHTML = empty(8, 'Error: ' + data.error); return; }
+    if (!data.length) { b.innerHTML = empty(8); return; }
     b.innerHTML = data.map(a => `
-        <tr class="${a.severity === 'Critical' ? 'critical-row' : ''}">
-            <td class="mono">${a.alert_id}</td>
-            <td style="max-width:250px">${a.alert_message}</td>
+        <tr class="${a.severity === 'Critical' ? 'row-critical' : ''}">
+            <td class="mono dim">${a.alert_id}</td>
+            <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis">${a.alert_message}</td>
             <td>${sevBadge(a.severity)}</td>
-            <td>${a.alert_type || '—'}</td>
-            <td class="mono">${a.event_id || '—'}</td>
+            <td><span class="badge badge-type">${a.alert_type || '—'}</span></td>
+            <td class="mono dim">${a.event_id || '—'}</td>
             <td>${sevBadge(a.threat_level)}</td>
-            <td class="mono">${fmt(a.alert_time)}</td>
-            <td>
-                <button class="btn btn-danger" onclick="deleteAlert(${a.alert_id})">✕ DEL</button>
-            </td>
+            <td class="mono dim">${fmt(a.alert_time)}</td>
+            <td><button class="btn btn-danger" onclick="deleteAlert(${a.alert_id})">Delete</button></td>
         </tr>`).join('');
 }
 
@@ -1166,23 +1272,23 @@ async function addAlert() {
         alert_type:    document.getElementById('a-type').value,
         event_id:      document.getElementById('a-event').value || null
     };
-    if (!body.alert_id || !body.alert_message) return toast('Alert ID and Message required', true);
+    if (!body.alert_id || !body.alert_message) return toast('Alert ID and Message required', 'error');
     const r = await api('/alerts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
     });
-    if (r.error) return toast('Error: ' + r.error, true);
-    toast('✔ Alert added!');
+    if (r.error) return toast('Error: ' + r.error, 'error');
+    toast('Alert added successfully', 'success');
     ['a-id','a-msg','a-event'].forEach(id => document.getElementById(id).value = '');
     loadAlerts();
 }
 
 async function deleteAlert(id) {
-    if (!confirm(`Delete Alert #${id}? (Response actions will also be removed)`)) return;
+    if (!confirm(`Delete Alert #${id}? Response actions will also be removed.`)) return;
     const r = await api('/alerts/' + id, { method: 'DELETE' });
-    if (r.error) return toast('Error: ' + r.error, true);
-    toast('✔ Alert deleted');
+    if (r.error) return toast('Error: ' + r.error, 'error');
+    toast('Alert deleted', 'success');
     loadAlerts();
     loadDashboard();
 }
@@ -1191,16 +1297,16 @@ async function deleteAlert(id) {
 async function loadEvents() {
     const data = await api('/events');
     const b = document.getElementById('events-body');
-    if (data.error || !data.length) { b.innerHTML = '<tr><td colspan="7" class="empty">No events</td></tr>'; return; }
+    if (data.error || !data.length) { b.innerHTML = empty(7); return; }
     b.innerHTML = data.map(e => `
         <tr>
-            <td class="mono">${e.event_id}</td>
+            <td class="mono dim">${e.event_id}</td>
             <td>${e.event_description}</td>
             <td>${sevBadge(e.threat_level)}</td>
-            <td class="mono">${fmt(e.event_time)}</td>
-            <td style="color:var(--orange)">${e.attack_name || '—'}</td>
+            <td class="mono dim">${fmt(e.event_time)}</td>
+            <td style="color:var(--high)">${e.attack_name || '—'}</td>
             <td>${sevBadge(e.risk_level)}</td>
-            <td>${e.sig_description || '—'}</td>
+            <td class="dim">${e.sig_description || '—'}</td>
         </tr>`).join('');
 }
 
@@ -1208,14 +1314,14 @@ async function loadEvents() {
 async function loadSignatures() {
     const data = await api('/signatures');
     const b = document.getElementById('signatures-body');
-    if (data.error || !data.length) { b.innerHTML = '<tr><td colspan="5" class="empty">No signatures</td></tr>'; return; }
+    if (data.error || !data.length) { b.innerHTML = empty(5); return; }
     b.innerHTML = data.map(s => `
         <tr>
-            <td class="mono">${s.signature_id}</td>
-            <td style="color:var(--orange)">${s.attack_name}</td>
+            <td class="mono dim">${s.signature_id}</td>
+            <td style="color:var(--high);font-weight:500">${s.attack_name}</td>
             <td>${sevBadge(s.risk_level)}</td>
-            <td class="mono" style="color:var(--text2);max-width:200px;overflow:hidden;text-overflow:ellipsis">${s.rule_pattern}</td>
-            <td>${s.description}</td>
+            <td class="mono dim" style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${s.rule_pattern}</td>
+            <td class="dim">${s.description}</td>
         </tr>`).join('');
 }
 
@@ -1223,20 +1329,20 @@ async function loadSignatures() {
 async function loadTraffic() {
     const data = await api('/traffic');
     const b = document.getElementById('traffic-body');
-    if (data.error || !data.length) { b.innerHTML = '<tr><td colspan="11" class="empty">No traffic logs</td></tr>'; return; }
+    if (data.error || !data.length) { b.innerHTML = empty(11); return; }
     b.innerHTML = data.map(t => `
         <tr>
-            <td class="mono">${t.log_id}</td>
-            <td class="mono" style="color:var(--cyan)">${t.src_ip}</td>
-            <td class="mono">${t.dest_ip}</td>
-            <td><span class="badge" style="color:var(--purple);background:var(--purple-dim);border-color:rgba(167,139,250,0.3)">${t.protocol}</span></td>
-            <td class="mono">${t.port}</td>
-            <td>${t.packet_size} B</td>
-            <td>${t.session_duration}s</td>
-            <td>${t.interface_name || '—'}</td>
-            <td>${t.device_name || '—'}</td>
-            <td>${t.location || '—'}</td>
-            <td class="mono">${fmt(t.timestamp)}</td>
+            <td class="mono dim">${t.log_id}</td>
+            <td class="mono" style="color:var(--accent)">${t.src_ip}</td>
+            <td class="mono dim">${t.dest_ip}</td>
+            <td><span class="badge badge-proto">${t.protocol}</span></td>
+            <td class="mono dim">${t.port}</td>
+            <td class="dim">${t.packet_size} B</td>
+            <td class="dim">${t.session_duration}s</td>
+            <td class="dim">${t.interface_name || '—'}</td>
+            <td class="dim">${t.device_name || '—'}</td>
+            <td class="dim">${t.location || '—'}</td>
+            <td class="mono dim">${fmt(t.timestamp)}</td>
         </tr>`).join('');
 }
 
@@ -1244,17 +1350,15 @@ async function loadTraffic() {
 async function loadDevices() {
     const data = await api('/devices');
     const b = document.getElementById('devices-body');
-    if (data.error || !data.length) { b.innerHTML = '<tr><td colspan="6" class="empty">No devices</td></tr>'; return; }
+    if (data.error || !data.length) { b.innerHTML = empty(6); return; }
     b.innerHTML = data.map(d => `
         <tr>
-            <td class="mono">${d.device_id}</td>
-            <td style="color:var(--cyan)">${d.device_name}</td>
-            <td class="mono">${d.device_ip}</td>
-            <td>${d.location}</td>
-            <td><span class="badge" style="color:var(--purple);background:var(--purple-dim);border-color:rgba(167,139,250,0.3)">${d.device_type}</span></td>
-            <td>
-                <button class="btn btn-danger" onclick="deleteDevice(${d.device_id})">✕ DEL</button>
-            </td>
+            <td class="mono dim">${d.device_id}</td>
+            <td style="font-weight:500">${d.device_name}</td>
+            <td class="mono" style="color:var(--accent)">${d.device_ip}</td>
+            <td class="dim">${d.location}</td>
+            <td><span class="badge badge-type">${d.device_type}</span></td>
+            <td><button class="btn btn-danger" onclick="deleteDevice(${d.device_id})">Delete</button></td>
         </tr>`).join('');
 }
 
@@ -1266,14 +1370,14 @@ async function addDevice() {
         location:    document.getElementById('d-loc').value,
         device_type: document.getElementById('d-type').value
     };
-    if (!body.device_id || !body.device_name || !body.device_ip) return toast('ID, Name, IP required', true);
+    if (!body.device_id || !body.device_name || !body.device_ip) return toast('ID, Name, and IP are required', 'error');
     const r = await api('/devices', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
     });
-    if (r.error) return toast('Error: ' + r.error, true);
-    toast('✔ Device added!');
+    if (r.error) return toast('Error: ' + r.error, 'error');
+    toast('Device added', 'success');
     ['d-id','d-name','d-ip','d-loc'].forEach(id => document.getElementById(id).value = '');
     loadDevices();
 }
@@ -1281,8 +1385,8 @@ async function addDevice() {
 async function deleteDevice(id) {
     if (!confirm(`Delete Device #${id}?`)) return;
     const r = await api('/devices/' + id, { method: 'DELETE' });
-    if (r.error) return toast('Error: ' + r.error, true);
-    toast('✔ Device deleted');
+    if (r.error) return toast('Error: ' + r.error, 'error');
+    toast('Device deleted', 'success');
     loadDevices();
 }
 
@@ -1290,21 +1394,21 @@ async function deleteDevice(id) {
 async function loadActions() {
     const data = await api('/actions');
     const b = document.getElementById('actions-body');
-    if (data.error || !data.length) { b.innerHTML = '<tr><td colspan="9" class="empty">No actions</td></tr>'; return; }
+    if (data.error || !data.length) { b.innerHTML = empty(9); return; }
     b.innerHTML = data.map(a => `
         <tr>
-            <td class="mono">${a.action_id}</td>
-            <td>${a.action_type}</td>
+            <td class="mono dim">${a.action_id}</td>
+            <td style="font-weight:500">${a.action_type}</td>
             <td>${statusBadge(a.action_status)}</td>
-            <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis">${a.alert_message || '—'}</td>
+            <td class="dim" style="max-width:180px;overflow:hidden;text-overflow:ellipsis">${a.alert_message || '—'}</td>
             <td>${sevBadge(a.severity)}</td>
             <td>${a.admin_name || '—'}</td>
-            <td style="color:var(--text2)">${a.admin_role || '—'}</td>
-            <td class="mono">${fmt(a.action_time)}</td>
+            <td class="dim">${a.admin_role || '—'}</td>
+            <td class="mono dim">${fmt(a.action_time)}</td>
             <td>
                 ${a.action_status !== 'Executed'
-                    ? `<button class="btn btn-success" onclick="markExecuted(${a.action_id})">✔ Execute</button>`
-                    : '<span style="color:var(--text2);font-size:10px">Done</span>'}
+                    ? `<button class="btn btn-success" onclick="markExecuted(${a.action_id})">✓ Execute</button>`
+                    : '<span style="color:var(--t2);font-size:11px">Done</span>'}
             </td>
         </tr>`).join('');
 }
@@ -1317,14 +1421,14 @@ async function addAction() {
         alert_id:      document.getElementById('ac-alert').value,
         admin_id:      document.getElementById('ac-admin').value
     };
-    if (!body.action_id || !body.alert_id || !body.admin_id) return toast('Action ID, Alert ID, Admin ID required', true);
+    if (!body.action_id || !body.alert_id || !body.admin_id) return toast('Action ID, Alert ID, Admin ID required', 'error');
     const r = await api('/actions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
     });
-    if (r.error) return toast('Error: ' + r.error, true);
-    toast('✔ Action added!');
+    if (r.error) return toast('Error: ' + r.error, 'error');
+    toast('Action added', 'success');
     ['ac-id','ac-alert','ac-admin'].forEach(id => document.getElementById(id).value = '');
     loadActions();
 }
@@ -1335,8 +1439,8 @@ async function markExecuted(id) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action_status: 'Executed' })
     });
-    if (r.error) return toast('Error: ' + r.error, true);
-    toast('✔ Action marked as Executed');
+    if (r.error) return toast('Error: ' + r.error, 'error');
+    toast('Action marked as Executed', 'success');
     loadActions();
 }
 
@@ -1344,20 +1448,19 @@ async function markExecuted(id) {
 async function loadAdmins() {
     const data = await api('/admins');
     const b = document.getElementById('admins-body');
-    if (data.error || !data.length) { b.innerHTML = '<tr><td colspan="5" class="empty">No admins</td></tr>'; return; }
+    if (data.error || !data.length) { b.innerHTML = empty(5); return; }
     b.innerHTML = data.map(a => `
         <tr>
-            <td class="mono">${a.admin_id}</td>
-            <td style="color:var(--cyan)">${a.name}</td>
-            <td>${a.email}</td>
-            <td><span class="badge" style="color:var(--purple);background:var(--purple-dim);border-color:rgba(167,139,250,0.3)">${a.role}</span></td>
-            <td class="mono">${a.phones || '—'}</td>
+            <td class="mono dim">${a.admin_id}</td>
+            <td style="font-weight:500">${a.name}</td>
+            <td class="dim">${a.email}</td>
+            <td><span class="badge badge-type">${a.role}</span></td>
+            <td class="mono dim">${a.phones || '—'}</td>
         </tr>`).join('');
 }
 
 // ── INIT ─────────────────────────────────────────────────────────
 loadDashboard();
 </script>
-
 </body>
 </html>

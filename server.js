@@ -17,7 +17,7 @@ app.use(express.static(__dirname)); // serves index.html from same folder
 const db = mysql.createConnection({
     host:     'localhost',
     user:     'root',
-    password: process.env.DB_PASSWORD,
+    password: 'Harsh@99',
     database: 'NIDS_DB'
 });
 
